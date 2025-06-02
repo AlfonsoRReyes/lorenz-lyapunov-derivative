@@ -1,6 +1,8 @@
 /*
+/**
  * Lorenz Lyapunov "Better Method" - Simplified Implementation
- * Based on Wolf et al. algorithm and Gram-Schmidt orthonormalization
+ * Based on single perturbation vector evolution using linearized dynamics
+ * Implements equation (6.20) from Chapter 6
  */
 package org.opensourcephysics.develop;
 import org.opensourcephysics.controls.*;
@@ -62,8 +64,8 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         
         control.println("=== BETTER METHOD (Simplified) ===");
         control.println("Expected LE ≈ 0.9056 for standard Lorenz");
-        control.println("Your naive method at t=800: LE=0.86655");
-        control.println("===================================");
+        control.println("Naive method with Lorenz systems at t=800: LE=0.86655");
+        control.println("======================================================");
         
         lorenzFrame.setVisible(true);
         lyapunovFrame.setVisible(true);
@@ -73,7 +75,7 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         control.setValue("x", 1.0);
         control.setValue("y", 0.0);
         control.setValue("z", 0.0);
-        control.setValue("perturbation", 1e-12);
+        control.setValue("perturbation", 1e-20);
         control.setValue("sigma", 10.0);
         control.setValue("rho", 28.0);
         control.setValue("beta", 8.0/3.0);
@@ -116,7 +118,7 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
 
 /**
  * Simplified "Better Method" implementation
- * Uses one main trajectory + one perturbation vector evolved with Jacobian
+ * Uses one main trajectory + one perturbation vector evolved
  */
 class LorenzBetterMethod extends Group implements ODE {
     // Extended state: [x, y, z, dx, dy, dz, t] where dx,dy,dz is perturbation
