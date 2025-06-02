@@ -174,17 +174,23 @@ class LorenzBetterMethod extends Group implements ODE {
     protected void doStep() {
         // Calculate current perturbation magnitude before step
         double oldMag = Math.sqrt(state[3]*state[3] + state[4]*state[4] + state[5]*state[5]);
+        //      ^
+        //  This is |Δx_i|        
         
         // Step the system (main trajectory + perturbation)
         ode_solver.step();
         
         // Calculate new perturbation magnitude
         double newMag = Math.sqrt(state[3]*state[3] + state[4]*state[4] + state[5]*state[5]);
+        //       ^
+        //  This is | Δx_{i+1} |  
         
         // Update Lyapunov sum
         if (oldMag > 0 && newMag > 0 && state[6] > 0) {
             // Key insight: accumulate ln(growth) over time
-            lyapunovSum += Math.log(newMag / oldMag);
+            lyapunovSum += Math.log(newMag / oldMag);   // This line implements ln| Δx_{i+1} | / | Δx_i |
+            //                 ^        ^        ^
+            //                 ln( |Δx_{i+1}| / |Δx_i|  )            
             
             // Renormalize to prevent overflow (keeps perturbation small)
             // Use the same size as initial perturbation for consistency
