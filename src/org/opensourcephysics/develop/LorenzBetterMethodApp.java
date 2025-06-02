@@ -28,6 +28,7 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         lyapunovDataset.setConnected(true);
         lyapunovDataset.setLineColor(Color.RED);
         lyapunovDataset.setMarkerSize(-1);
+        lyapunovDataset.setMaximumPoints(1000000);  // Prevent data loss
         lyapunovFrame.addDrawable(lyapunovDataset);
         lyapunovFrame.setAutoscaleX(true);
         lyapunovFrame.setAutoscaleY(true);
@@ -41,12 +42,13 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         double x = control.getDouble("x");
         double y = control.getDouble("y");
         double z = control.getDouble("z");
+        double perturbation = control.getDouble("perturbation");
         double sigma = control.getDouble("sigma");
         double rho = control.getDouble("rho");
         double beta = control.getDouble("beta");
         double dt = control.getDouble("dt");
         
-        lorenz.initialize(x, y, z, sigma, rho, beta);
+        lorenz.initialize(x, y, z, perturbation, sigma, rho, beta);
         lorenz.ode_solver.initialize(dt);
         
         lyapunovDataset.clear();
@@ -65,10 +67,12 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         control.setValue("x", 1.0);
         control.setValue("y", 0.0);
         control.setValue("z", 0.0);
+        control.setValue("perturbation", 1e-12);
         control.setValue("sigma", 10.0);
         control.setValue("rho", 28.0);
         control.setValue("beta", 8.0/3.0);
         control.setAdjustableValue("dt", 0.01);
+        control.setAdjustableValue("print interval", 50.0);
         
         enableStepsPerDisplay(true);
         setStepsPerDisplay(10);
@@ -81,9 +85,10 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         
         double time = lorenz.getTime();
         double lyapunov = lorenz.getCurrentLyapunov();
+        double printInterval = control.getDouble("print interval");
         
-        // Print every 50 time units
-        if (time % 50 < 0.1) {
+        // Print at configurable intervals
+        if (time % printInterval < 0.1) {
             control.print("t=" + String.format("%.0f", time) + " ");
             control.print("LE=" + decimal5.format(lyapunov) + " ");
             control.println();
@@ -134,7 +139,7 @@ class LorenzBetterMethod extends Group implements ODE {
         ode_solver.setStepSize(0.01);
     }
 
-    public void initialize(double x, double y, double z, double sigma, double rho, double beta) {
+    public void initialize(double x, double y, double z, double perturbationSize, double sigma, double rho, double beta) {
         this.sigma = sigma;
         this.rho = rho;
         this.beta = beta;
@@ -144,8 +149,8 @@ class LorenzBetterMethod extends Group implements ODE {
         state[1] = y;
         state[2] = z;
         
-        // Initial perturbation vector (tiny, in x direction)
-        state[3] = 1e-12;
+        // Initial perturbation vector (configurable size, in x direction)
+        state[3] = perturbationSize;
         state[4] = 0.0;
         state[5] = 0.0;
         state[6] = 0; // time
@@ -156,7 +161,7 @@ class LorenzBetterMethod extends Group implements ODE {
         trail.addPoint(x, y, z);
         ball.setXYZ(x, y, z);
         
-        System.out.println("Better method initialized with perturbation = 1e-12");
+        System.out.printf("Better method initialized with perturbation = %.2e%n", perturbationSize);
     }
 
     protected void doStep() {
@@ -175,7 +180,9 @@ class LorenzBetterMethod extends Group implements ODE {
             lyapunovSum += Math.log(newMag / oldMag);
             
             // Renormalize to prevent overflow (keeps perturbation small)
-            double scale = 1e-12 / newMag;
+            // Use the same size as initial perturbation for consistency
+            double targetSize = 1e-12; // Could make this configurable too
+            double scale = targetSize / newMag;
             state[3] *= scale;
             state[4] *= scale;
             state[5] *= scale;
