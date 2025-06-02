@@ -19,6 +19,9 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
     
     PlotFrame lyapunovFrame = new PlotFrame("Time", "Lyapunov Exponent", "Lyapunov (Better Method)");
     Dataset lyapunovDataset = new Dataset(Color.RED);
+    
+    // Track last print time to avoid duplicates
+    private double lastPrintTime = -1000;
 
     public LorenzBetterMethodApp() {
         lorenzFrame.setPreferredMinMax(-20.0, 20.0, -30.0, 30.0, 0.0, 50.0);
@@ -50,6 +53,9 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         
         lorenz.initialize(x, y, z, perturbation, sigma, rho, beta);
         lorenz.ode_solver.initialize(dt);
+        
+        // Reset print tracking
+        lastPrintTime = -1000;
         
         lyapunovDataset.clear();
         lyapunovFrame.repaint();
@@ -87,11 +93,12 @@ public class LorenzBetterMethodApp extends AbstractSimulation {
         double lyapunov = lorenz.getCurrentLyapunov();
         double printInterval = control.getDouble("print interval");
         
-        // Print at configurable intervals
-        if (time % printInterval < 0.1) {
-            control.print("t=" + String.format("%.0f", time) + " ");
+        // Print only once per interval (avoid duplicates)
+        if (time - lastPrintTime >= printInterval - 0.01) {
+            control.print("t=" + String.format("%.1f", time) + " ");
             control.print("LE=" + decimal5.format(lyapunov) + " ");
             control.println();
+            lastPrintTime = time;
         }
         
         if (time > 10.0) {
