@@ -211,6 +211,27 @@ class LorenzBetterMethod extends Group implements ODE {
                                     Math.abs(state[3]) < 10*machineEps,
                                     Math.abs(state[4]) < 10*machineEps, 
                                     Math.abs(state[5]) < 10*machineEps);
+                    
+                    // HYPOTHESIS TEST: Check Jacobian amplification potential
+                    double x = state[0], y = state[1], z = state[2];
+                    double maxJacobianElement = Math.max(Math.max(sigma, Math.abs(rho-z)), 
+                                                        Math.max(Math.abs(x), Math.max(Math.abs(y), beta)));
+                    double maxPerturbComponent = Math.max(Math.abs(state[3]), 
+                                                        Math.max(Math.abs(state[4]), Math.abs(state[5])));
+                    double amplificationPotential = maxJacobianElement * maxPerturbComponent;
+                    
+                    System.out.printf("  Jacobian elements: σ=%.1f, (ρ-z)=%.1f, x=%.1f, y=%.1f, β=%.1f%n",
+                                    sigma, (rho-z), x, y, beta);
+                    System.out.printf("  Max Jacobian: %.1f, Max perturbation: %.3e%n", 
+                                    maxJacobianElement, maxPerturbComponent);
+                    System.out.printf("  Amplification potential: %.3e (vs machine eps: %.2e)%n", 
+                                    amplificationPotential, machineEps);
+                    
+                    // Check if we're in "fake dynamics" regime
+                    boolean inFakeRegime = (maxPerturbComponent < 100 * machineEps) && 
+                                          (amplificationPotential > machineEps);
+                    System.out.printf("  FAKE DYNAMICS REGIME? %b%n", inFakeRegime);
+                    System.out.println("  ---");
                 }
             }
             
