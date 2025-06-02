@@ -190,28 +190,41 @@ class LorenzBetterMethod extends Group implements ODE {
             // Key insight: accumulate ln(growth) over time
             lyapunovSum += Math.log(newMag / oldMag);
             
-            // Debug output for very small perturbations
+            // Enhanced debug output for ALL small perturbations
             if (initialPerturbationSize <= 1e-14) {
-                if (Math.abs(state[6] % 100) < 0.1) { // Print every 100 time units
+                if (Math.abs(state[6] % 50) < 0.1) { // Print every 50 time units
                     System.out.printf("DEBUG t=%.1f: oldMag=%.3e, newMag=%.3e, ratio=%.6f%n", 
                                     state[6], oldMag, newMag, newMag/oldMag);
                     System.out.printf("  Perturbation: [%.3e, %.3e, %.3e]%n", 
                                     state[3], state[4], state[5]);
                     System.out.printf("  Current LE=%.6f%n", lyapunovSum / state[6]);
+                    
+                    // Check renormalization threshold
+                    double threshold = 1000 * initialPerturbationSize;
+                    System.out.printf("  Renorm threshold: %.3e, newMag > threshold? %b%n", 
+                                    threshold, newMag > threshold);
+                    
+                    // Check if we're hitting machine precision
+                    double machineEps = 2.22e-16;
+                    System.out.printf("  Machine epsilon: %.2e, components near zero? [%b, %b, %b]%n",
+                                    machineEps, 
+                                    Math.abs(state[3]) < 10*machineEps,
+                                    Math.abs(state[4]) < 10*machineEps, 
+                                    Math.abs(state[5]) < 10*machineEps);
                 }
             }
             
             // METHOD 1: Only renormalize to prevent overflow, not underflow
-            // Let the method fail naturally at extreme precision limits
             if (newMag > 1000 * initialPerturbationSize) {  
-                // Only prevent explosive growth
                 double scale = initialPerturbationSize / newMag;
                 state[3] *= scale;
                 state[4] *= scale;
                 state[5] *= scale;
-                System.out.printf("Renormalized at t=%.1f: newMag was %.3e%n", state[6], newMag);
+                System.out.printf("RENORMALIZED at t=%.1f: newMag was %.3e%n", state[6], newMag);
+            } else {
+                System.out.printf("NO RENORM at t=%.1f: newMag=%.3e vs threshold=%.3e%n", 
+                                state[6], newMag, 1000 * initialPerturbationSize);
             }
-            // If newMag becomes tiny, let it stay tiny and see what happens naturally
         }
         
         // Update visualization
