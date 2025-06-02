@@ -126,6 +126,9 @@ class LorenzBetterMethod extends Group implements ODE {
     double rho = 28.0;
     double beta = 8.0/3.0;
     
+    // Store the initial perturbation size for renormalization
+    double initialPerturbationSize = 1e-12;
+    
     // Lyapunov calculation
     double lyapunovSum = 0.0;
     
@@ -150,6 +153,7 @@ class LorenzBetterMethod extends Group implements ODE {
         this.sigma = sigma;
         this.rho = rho;
         this.beta = beta;
+        this.initialPerturbationSize = perturbationSize; // Store for renormalization
         
         // Main trajectory
         state[0] = x;
@@ -174,28 +178,31 @@ class LorenzBetterMethod extends Group implements ODE {
     protected void doStep() {
         // Calculate current perturbation magnitude before step
         double oldMag = Math.sqrt(state[3]*state[3] + state[4]*state[4] + state[5]*state[5]);
-        //      ^
-        //  This is |Δx_i|        
         
         // Step the system (main trajectory + perturbation)
         ode_solver.step();
         
         // Calculate new perturbation magnitude
         double newMag = Math.sqrt(state[3]*state[3] + state[4]*state[4] + state[5]*state[5]);
-        //       ^
-        //  This is | Δx_{i+1} |  
         
         // Update Lyapunov sum
         if (oldMag > 0 && newMag > 0 && state[6] > 0) {
             // Key insight: accumulate ln(growth) over time
-            lyapunovSum += Math.log(newMag / oldMag);   // This line implements ln| Δx_{i+1} | / | Δx_i |
-            //                 ^        ^        ^
-            //                 ln( |Δx_{i+1}| / |Δx_i|  )            
+            lyapunovSum += Math.log(newMag / oldMag);
             
-            // Renormalize to prevent overflow (keeps perturbation small)
-            // Use the same size as initial perturbation for consistency
-            double targetSize = 1e-12; // Could make this configurable too
-            double scale = targetSize / newMag;
+            // Debug output for very small perturbations
+            if (initialPerturbationSize <= 1e-14) {
+                if (Math.abs(state[6] % 100) < 0.1) { // Print every 100 time units
+                    System.out.printf("DEBUG t=%.1f: oldMag=%.3e, newMag=%.3e, ratio=%.6f%n", 
+                                    state[6], oldMag, newMag, newMag/oldMag);
+                    System.out.printf("  Perturbation: [%.3e, %.3e, %.3e]%n", 
+                                    state[3], state[4], state[5]);
+                    System.out.printf("  Current LE=%.6f%n", lyapunovSum / state[6]);
+                }
+            }
+            
+            // Renormalize to prevent overflow using the same size as initial perturbation
+            double scale = initialPerturbationSize / newMag;
             state[3] *= scale;
             state[4] *= scale;
             state[5] *= scale;
