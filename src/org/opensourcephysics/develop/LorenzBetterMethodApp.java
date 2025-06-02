@@ -201,11 +201,17 @@ class LorenzBetterMethod extends Group implements ODE {
                 }
             }
             
-            // Renormalize to prevent overflow using the same size as initial perturbation
-            double scale = initialPerturbationSize / newMag;
-            state[3] *= scale;
-            state[4] *= scale;
-            state[5] *= scale;
+            // METHOD 1: Only renormalize to prevent overflow, not underflow
+            // Let the method fail naturally at extreme precision limits
+            if (newMag > 1000 * initialPerturbationSize) {  
+                // Only prevent explosive growth
+                double scale = initialPerturbationSize / newMag;
+                state[3] *= scale;
+                state[4] *= scale;
+                state[5] *= scale;
+                System.out.printf("Renormalized at t=%.1f: newMag was %.3e%n", state[6], newMag);
+            }
+            // If newMag becomes tiny, let it stay tiny and see what happens naturally
         }
         
         // Update visualization
